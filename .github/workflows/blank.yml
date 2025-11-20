@@ -33,54 +33,52 @@ jobs:
           CODENAME="lito"
           MANUFACTURER="oppo"
 
-          echo "开始检测并补齐 build.prop..."
+          python3 -m twrpdtgen boot.img -o dt/
+
+          echo "开始强制补齐 build.prop..."
           for f in $(find dt -name build.prop); do
-            if ! grep -q "ro.product.system.device" "$f"; then
-              echo "ro.product.system.device=$CODENAME" >> "$f"
-              echo "ro.product.device=$CODENAME" >> "$f"
-              echo "ro.build.product=$CODENAME" >> "$f"
-              echo "ro.product.vendor.device=$CODENAME" >> "$f"
+            echo "正在处理文件: $f"
+            echo "ro.product.system.device=$CODENAME" >> "$f"
+            echo "ro.product.device=$CODENAME" >> "$f"
+            echo "ro.build.product=$CODENAME" >> "$f"
+            echo "ro.product.vendor.device=$CODENAME" >> "$f"
 
-              echo "ro.product.system.manufacturer=$MANUFACTURER" >> "$f"
-              echo "ro.product.manufacturer=$MANUFACTURER" >> "$f"
-              echo "ro.product.vendor.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.system.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.vendor.manufacturer=$MANUFACTURER" >> "$f"
 
-              echo "ro.product.model=$CODENAME" >> "$f"
-              echo "ro.product.name=$CODENAME" >> "$f"
+            echo "ro.product.model=$CODENAME" >> "$f"
+            echo "ro.product.name=$CODENAME" >> "$f"
 
-              echo "已补齐最小化 build.prop 属性到 $f"
-            else
-              echo "$f 已包含 ro.product.system.device"
-            fi
+            echo "已补齐最小化 build.prop 属性到 $f"
           done
           echo "✅ build.prop 补丁完成"
-          python3 -m twrpdtgen boot.img -o dt/
+
         elif [ -f "recovery.img" ]; then
           CODENAME="lito"
           MANUFACTURER="oppo"
 
-          echo "开始检测并补齐 build.prop..."
+          python3 -m twrpdtgen recovery.img -o dt/
+
+          echo "开始强制补齐 build.prop..."
           for f in $(find dt -name build.prop); do
-            if ! grep -q "ro.product.system.device" "$f"; then
-              echo "ro.product.system.device=$CODENAME" >> "$f"
-              echo "ro.product.device=$CODENAME" >> "$f"
-              echo "ro.build.product=$CODENAME" >> "$f"
-              echo "ro.product.vendor.device=$CODENAME" >> "$f"
+            echo "正在处理文件: $f"
+            echo "ro.product.system.device=$CODENAME" >> "$f"
+            echo "ro.product.device=$CODENAME" >> "$f"
+            echo "ro.build.product=$CODENAME" >> "$f"
+            echo "ro.product.vendor.device=$CODENAME" >> "$f"
 
-              echo "ro.product.system.manufacturer=$MANUFACTURER" >> "$f"
-              echo "ro.product.manufacturer=$MANUFACTURER" >> "$f"
-              echo "ro.product.vendor.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.system.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.manufacturer=$MANUFACTURER" >> "$f"
+            echo "ro.product.vendor.manufacturer=$MANUFACTURER" >> "$f"
 
-              echo "ro.product.model=$CODENAME" >> "$f"
-              echo "ro.product.name=$CODENAME" >> "$f"
+            echo "ro.product.model=$CODENAME" >> "$f"
+            echo "ro.product.name=$CODENAME" >> "$f"
 
-              echo "已补齐最小化 build.prop 属性到 $f"
-            else
-              echo "$f 已包含 ro.product.system.device"
-            fi
+            echo "已补齐最小化 build.prop 属性到 $f"
           done
           echo "✅ build.prop 补丁完成"
-          python3 -m twrpdtgen recovery.img -o dt/
+
         else
           echo "No boot.img or recovery.img found."
           exit 1
