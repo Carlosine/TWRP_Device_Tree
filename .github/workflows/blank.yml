@@ -28,21 +28,8 @@ jobs:
         echo "开始下载镜像: ${{ github.event.inputs.IMG_URL }}"
         aria2c -o boot.img "${{ github.event.inputs.IMG_URL }}" || \
         aria2c -o recovery.img "${{ github.event.inputs.IMG_URL }}"
-      
-    - name: Run twrpdtgen
-      run: |
-        if [ -f "boot.img" ]; then
-          echo "使用 boot.img 生成设备树..."
-          python3 -m twrpdtgen boot.img -o dt/
-        elif [ -f "recovery.img" ]; then
-          echo "使用 recovery.img 生成设备树..."
-          python3 -m twrpdtgen recovery.img -o dt/
-        else
-          echo "❌ 未找到 boot.img 或 recovery.img"
-          exit 1
-        fi
 
-    - name: Auto patch build.prop codename
+ - name: Auto patch build.prop codename
       run: |
         CODENAME="lito"
         echo "开始检测并补齐 build.prop..."
@@ -58,6 +45,20 @@ jobs:
           fi
         done
         echo "✅ build.prop 补丁完成"
+      
+    - name: Run twrpdtgen
+      run: |
+        if [ -f "boot.img" ]; then
+          echo "使用 boot.img 生成设备树..."
+          python3 -m twrpdtgen boot.img -o dt/
+        elif [ -f "recovery.img" ]; then
+          echo "使用 recovery.img 生成设备树..."
+          python3 -m twrpdtgen recovery.img -o dt/
+        else
+          echo "❌ 未找到 boot.img 或 recovery.img"
+          exit 1
+        fi
+
       
     - name: ZIP device tree
       run: |
