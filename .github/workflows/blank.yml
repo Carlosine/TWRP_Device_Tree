@@ -10,7 +10,6 @@ on:
 
 jobs:
   build:
-    # 仅仓库所有者本人触发
     if: github.event.repository.owner.id == github.event.sender.id
     runs-on: ubuntu-latest
 
@@ -22,52 +21,18 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt update
-          # 安装必要工具：python、pip、虚拟环境、打包、解包、下载、zip
-          sudo apt -y install python3 python3-venv python3-pip \
-                              cpio aria2 zip unzip wget git
-          # 创建并启用虚拟环境
+          sudo apt -y install python3 python3-pip python3-venv cpio aria2 zip unzip wget git
           python3 -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
-          # 安装 twrpdtgen
           pip install --no-cache-dir twrpdtgen
-          # 应用兼容性补丁：为缺失 ro.product.system.device 提供回退属性
-          python - <<'PY'
-          import importlib.util, pathlib, re, sys
-          import twrpdtgen
-
-          # 找到已安装包路径
-          pkg = pathlib.Path(twrpdtgen.__file__).parent
-          target_files = [
-              pkg / 'utils' / 'buildprop.py',
-              pkg / 'device' / 'device_info.py',
-          ]
-          # 在 buildprop 解析阶段和 device_info 获取 codename 阶段加入回退
-          # 方案：优先 ro.product.system.device，其次 ro.product.device、
-          # ro.product.vendor.device、ro.build.product、ro.product.name、ro.product.model
-          for tf in target_files:
-              text = tf.read_text(encoding='utf-8')
-              # 在典型的 get('ro.product.system.device') 取值处增加回退
-              text = re.sub(
-                  r"get\(\s*['\"]ro\.product\.system\.device['\"]\s*\)",
-                  "get('ro.product.system.device') or "
-                  "get('ro.product.device') or "
-                  "get('ro.product.vendor.device') or "
-                  "get('ro.build.product') or "
-                  "get('ro.product.name') or "
-                  "get('ro.product.model')",
-                  text
-              )
-              tf.write_text(text, encoding='utf-8')
-          print('Patched twrpdtgen to fallback when ro.product.system.device is missing.')
-          PY
           mkdir -p dt
 
       - name: Download boot or recovery image
         run: |
           set -euo pipefail
           aria2c --allow-overwrite=true --auto-file-renaming=false "${{ github.event.inputs.IMG_URL }}"
-          # 统一命名，兼容用户提供的不同文件名
+          # 统一命名
           for n in boot.img recovery.img; do
             if ls *boot*.img >/dev/null 2>&1 && [ "$n" = "boot.img" ]; then
               mv -f "$(ls *boot*.img | head -n1)" boot.img
@@ -89,6 +54,25 @@ jobs:
             echo "No boot.img or recovery.img found."
             exit 1
           fi
+
+      - name: Patch build.prop if missing ro.product.system.device
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os, re
+          def patch_buildprop(path):
+              text = open(path, encoding="utf-8").read()
+              if "ro.product.system.device" not in text:
+                  match = re.search(r"ro\.product\.device=(\S+)", text)
+                  codename = match.group(1) if match else "unknown"
+                  text += f"\nro.product.system.device={codename}\n"
+                  open(path, "w", encoding="utf-8").write(text)
+                  print("补充 ro.product.system.device =", codename)
+          for root, _, files in os.walk("dt"):
+              for f in files:
+                  if f == "build.prop":
+                      patch_buildprop(os.path.join(root, f))
+          PY
 
       - name: ZIP device tree
         run: |
