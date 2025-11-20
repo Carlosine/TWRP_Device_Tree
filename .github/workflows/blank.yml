@@ -35,18 +35,18 @@ jobs:
           # 先创建 dt/build.prop 并补齐属性
           echo "开始创建并补齐 build.prop..."
           cat <<EOF > dt/build.prop
-ro.product.system.device=$CODENAME
-ro.product.device=$CODENAME
-ro.build.product=$CODENAME
-ro.product.vendor.device=$CODENAME
+          ro.product.system.device=$CODENAME
+          ro.product.device=$CODENAME
+          ro.build.product=$CODENAME
+          ro.product.vendor.device=$CODENAME
 
-ro.product.system.manufacturer=$MANUFACTURER
-ro.product.manufacturer=$MANUFACTURER
-ro.product.vendor.manufacturer=$MANUFACTURER
+          ro.product.system.manufacturer=$MANUFACTURER
+          ro.product.manufacturer=$MANUFACTURER
+          ro.product.vendor.manufacturer=$MANUFACTURER
 
-ro.product.model=$CODENAME
-ro.product.name=$CODENAME
-EOF
+          ro.product.model=$CODENAME
+          ro.product.name=$CODENAME
+          EOF
           echo "已生成并补齐最小化 build.prop 到 dt/build.prop"
           echo "✅ build.prop 补丁完成"
 
