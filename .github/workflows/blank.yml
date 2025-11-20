@@ -32,14 +32,16 @@ jobs:
         run: |
           set -euo pipefail
           aria2c --allow-overwrite=true --auto-file-renaming=false "${{ github.event.inputs.IMG_URL }}"
-          # 统一命名
-          for n in boot.img recovery.img; do
-            if ls *boot*.img >/dev/null 2>&1 && [ "$n" = "boot.img" ]; then
-              mv -f "$(ls *boot*.img | head -n1)" boot.img
-            fi
-            if ls *recovery*.img >/dev/null 2>&1 && [ "$n" = "recovery.img" ]; then
-              mv -f "$(ls *recovery*.img | head -n1)" recovery.img
-            fi
+          # 条件重命名，避免 mv 同名报错
+          for f in *.img; do
+            case "$f" in
+              *boot*.img)
+                [ "$f" = "boot.img" ] || mv "$f" boot.img
+                ;;
+              *recovery*.img)
+                [ "$f" = "recovery.img" ] || mv "$f" recovery.img
+                ;;
+            esac
           done
 
       - name: Start build
