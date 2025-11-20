@@ -3,7 +3,7 @@ name: Make TWRP Device
 on:
   workflow_dispatch:
     inputs:
-      IMG_URL:
+      IMG_URL:    
         description: 'IMG_URL'
         required: true
         default: ''
@@ -11,90 +11,45 @@ on:
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-20.04
+    
     steps:
-      - name: Check out
-        uses: actions/checkout@v4
-
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          sudo apt update
-          # 安装 AIK 可能用到的工具
-          sudo apt -y install python3 python3-pip python3-venv bash cpio gzip lz4 xz-utils unzip zip wget git
-          python3 -m venv .venv
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install --no-cache-dir twrpdtgen
-          mkdir -p dt
-
-      - name: Download boot or recovery image
-        run: |
-          set -euo pipefail
-          aria2c --allow-overwrite=true --auto-file-renaming=false "${{ github.event.inputs.IMG_URL }}"
-          # 条件重命名，避免 mv 同名报错
-          for f in *.img; do
-            case "$f" in
-              *boot*.img)
-                [ "$f" = "boot.img" ] || mv "$f" boot.img
-                ;;
-              *recovery*.img)
-                [ "$f" = "recovery.img" ] || mv "$f" recovery.img
-                ;;
-            esac
-          done
-
-      - name: Check image file
-        run: |
-          set -euo pipefail
-          ls -lh *.img
-          file *.img || true
-
-      - name: Start build
-        run: |
-          set -euo pipefail
-          source .venv/bin/activate
-          if [ -f "boot.img" ]; then
-            python -m twrpdtgen boot.img -o dt/ || echo "AIK failed on boot.img"
-          elif [ -f "recovery.img" ]; then
-            python -m twrpdtgen recovery.img -o dt/ || echo "AIK failed on recovery.img"
-          else
-            echo "No boot.img or recovery.img found."
-            exit 1
-          fi
-
-      - name: Patch build.prop if missing ro.product.system.device
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          import os, re
-          def patch_buildprop(path):
-              text = open(path, encoding="utf-8").read()
-              if "ro.product.system.device" not in text:
-                  match = re.search(r"ro\.product\.device=(\S+)", text)
-                  codename = match.group(1) if match else "unknown"
-                  text += f"\nro.product.system.device={codename}\n"
-                  open(path, "w", encoding="utf-8").write(text)
-                  print("补充 ro.product.system.device =", codename)
-          for root, _, files in os.walk("dt"):
-              for f in files:
-                  if f == "build.prop":
-                      patch_buildprop(os.path.join(root, f))
-          PY
-
-      - name: ZIP device tree
-        run: |
-          set -euo pipefail
-          cd dt
-          zip -r ../DeviceTree.zip .
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./DeviceTree.zip
-          name: TWRP_Device_Tree-${{ github.run_id }}
-          tag_name: ${{ github.run_id }}
-          body: DeviceTree for twrp
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Check Out
+      uses: actions/checkout@main
+      
+    - name: Prepare the environment
+      run: |
+        sudo apt update
+        sudo apt -y install python3 python3-pip cpio wget
+        pip3 install twrpdtgen
+        mkdir dt
+      
+    - name: Download boot or recovery img
+      run: |
+        aria2c "${{ github.event.inputs.IMG_URL }}"
+      
+    - name: Start build
+      run: |
+        if [ -f "boot.img" ]; then
+          python3 -m twrpdtgen boot.img -o dt/
+        elif [ -f "recovery.img" ]; then
+          python3 -m twrpdtgen recovery.img -o dt/
+        else
+          echo "No boot.img or recovery.img found."
+          exit 1
+        fi
+      
+    - name: ZIP device tree
+      run: |
+        zip -r DeviceTree.zip ./dt
+      
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./DeviceTree.zip
+        name: TWRP_Device_Tree-${{ github.run_id }}
+        tag_name: ${{ github.run_id }}
+        body: DeviceTree for twrp
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
