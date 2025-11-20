@@ -27,7 +27,7 @@ jobs:
       run: |
         aria2c "${{ github.event.inputs.IMG_URL }}"
       
-    - name: Start build
+    - name: Run twrpdtgen
       run: |
         if [ -f "boot.img" ]; then
           python3 -m twrpdtgen boot.img -o dt/
@@ -38,15 +38,18 @@ jobs:
           exit 1
         fi
 
-    - name: Patch codename to lito
+    - name: Auto patch build.prop codename
       run: |
-        # 遍历所有 build.prop 文件，补齐 ro.product.system.device
+        echo "开始检测并补齐 build.prop..."
         for f in $(find dt -name build.prop); do
           if ! grep -q "ro.product.system.device" "$f"; then
             echo "ro.product.system.device=lito" >> "$f"
-            echo "已补充 codename=lito 到 $f"
+            echo "已补充 ro.product.system.device=lito 到 $f"
+          else
+            echo "$f 已包含 ro.product.system.device"
           fi
         done
+        echo "✅ build.prop 补丁完成"
       
     - name: ZIP device tree
       run: |
