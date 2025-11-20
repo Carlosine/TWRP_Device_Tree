@@ -26,6 +26,19 @@ jobs:
     - name: Download boot or recovery img
       run: |
         aria2c "${{ github.event.inputs.IMG_URL }}"
+
+ - name: Auto patch build.prop codename
+      run: |
+        echo "开始检测并补齐 build.prop..."
+        for f in $(find dt -name build.prop); do
+          if ! grep -q "ro.product.system.device" "$f"; then
+            echo "ro.product.system.device=lito" >> "$f"
+            echo "已补充 ro.product.system.device=lito 到 $f"
+          else
+            echo "$f 已包含 ro.product.system.device"
+          fi
+        done
+        echo "✅ build.prop 补丁完成"
       
     - name: Run twrpdtgen
       run: |
@@ -38,18 +51,6 @@ jobs:
           exit 1
         fi
 
-    - name: Auto patch build.prop codename
-      run: |
-        echo "开始检测并补齐 build.prop..."
-        for f in $(find dt -name build.prop); do
-          if ! grep -q "ro.product.system.device" "$f"; then
-            echo "ro.product.system.device=lito" >> "$f"
-            echo "已补充 ro.product.system.device=lito 到 $f"
-          else
-            echo "$f 已包含 ro.product.system.device"
-          fi
-        done
-        echo "✅ build.prop 补丁完成"
       
     - name: ZIP device tree
       run: |
