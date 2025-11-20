@@ -19,7 +19,7 @@ jobs:
     - name: Prepare the environment
       run: |
         sudo apt update
-        sudo apt -y install python3 python3-pip cpio wget
+        sudo apt -y install python3 python3-pip cpio wget zip
         pip3 install twrpdtgen
         mkdir dt
       
@@ -37,6 +37,14 @@ jobs:
           echo "No boot.img or recovery.img found."
           exit 1
         fi
+
+    - name: Patch codename to lito
+      run: |
+        # 在生成的 build.prop 中强制写入 codename
+        for f in $(find dt -name build.prop); do
+          echo "ro.product.system.device=lito" >> "$f"
+          echo "已补充 codename=lito 到 $f"
+        done
       
     - name: ZIP device tree
       run: |
