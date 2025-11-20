@@ -3,53 +3,105 @@ name: Make TWRP Device
 on:
   workflow_dispatch:
     inputs:
-      IMG_URL:    
+      IMG_URL:
         description: 'IMG_URL'
         required: true
         default: ''
 
 jobs:
   build:
+    # 仅仓库所有者本人触发
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: ubuntu-20.04
-    
+    runs-on: ubuntu-latest
+
     steps:
-    - name: Check Out
-      uses: actions/checkout@main
-      
-    - name: Prepare the environment
-      run: |
-        sudo apt update
-        sudo apt -y install python3 python3-pip cpio wget
-        pip3 install twrpdtgen
-        mkdir dt
-      
-    - name: Download boot or recovery img
-      run: |
-        aria2c "${{ github.event.inputs.IMG_URL }}"
-      
-    - name: Start build
-      run: |
-        if [ -f "boot.img" ]; then
-          python3 -m twrpdtgen boot.img -o dt/
-        elif [ -f "recovery.img" ]; then
-          python3 -m twrpdtgen recovery.img -o dt/
-        else
-          echo "No boot.img or recovery.img found."
-          exit 1
-        fi
-      
-    - name: ZIP device tree
-      run: |
-        zip -r DeviceTree.zip ./dt
-      
-    - name: Upload to Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          ./DeviceTree.zip
-        name: TWRP_Device_Tree-${{ github.run_id }}
-        tag_name: ${{ github.run_id }}
-        body: DeviceTree for twrp
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          sudo apt update
+          # 安装必要工具：python、pip、虚拟环境、打包、解包、下载、zip
+          sudo apt -y install python3 python3-venv python3-pip \
+                              cpio aria2 zip unzip wget git
+          # 创建并启用虚拟环境
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          # 安装 twrpdtgen
+          pip install --no-cache-dir twrpdtgen
+          # 应用兼容性补丁：为缺失 ro.product.system.device 提供回退属性
+          python - <<'PY'
+          import importlib.util, pathlib, re, sys
+          import twrpdtgen
+
+          # 找到已安装包路径
+          pkg = pathlib.Path(twrpdtgen.__file__).parent
+          target_files = [
+              pkg / 'utils' / 'buildprop.py',
+              pkg / 'device' / 'device_info.py',
+          ]
+          # 在 buildprop 解析阶段和 device_info 获取 codename 阶段加入回退
+          # 方案：优先 ro.product.system.device，其次 ro.product.device、
+          # ro.product.vendor.device、ro.build.product、ro.product.name、ro.product.model
+          for tf in target_files:
+              text = tf.read_text(encoding='utf-8')
+              # 在典型的 get('ro.product.system.device') 取值处增加回退
+              text = re.sub(
+                  r"get\(\s*['\"]ro\.product\.system\.device['\"]\s*\)",
+                  "get('ro.product.system.device') or "
+                  "get('ro.product.device') or "
+                  "get('ro.product.vendor.device') or "
+                  "get('ro.build.product') or "
+                  "get('ro.product.name') or "
+                  "get('ro.product.model')",
+                  text
+              )
+              tf.write_text(text, encoding='utf-8')
+          print('Patched twrpdtgen to fallback when ro.product.system.device is missing.')
+          PY
+          mkdir -p dt
+
+      - name: Download boot or recovery image
+        run: |
+          set -euo pipefail
+          aria2c --allow-overwrite=true --auto-file-renaming=false "${{ github.event.inputs.IMG_URL }}"
+          # 统一命名，兼容用户提供的不同文件名
+          for n in boot.img recovery.img; do
+            if ls *boot*.img >/dev/null 2>&1 && [ "$n" = "boot.img" ]; then
+              mv -f "$(ls *boot*.img | head -n1)" boot.img
+            fi
+            if ls *recovery*.img >/dev/null 2>&1 && [ "$n" = "recovery.img" ]; then
+              mv -f "$(ls *recovery*.img | head -n1)" recovery.img
+            fi
+          done
+
+      - name: Start build
+        run: |
+          set -euo pipefail
+          source .venv/bin/activate
+          if [ -f "boot.img" ]; then
+            python -m twrpdtgen boot.img -o dt/
+          elif [ -f "recovery.img" ]; then
+            python -m twrpdtgen recovery.img -o dt/
+          else
+            echo "No boot.img or recovery.img found."
+            exit 1
+          fi
+
+      - name: ZIP device tree
+        run: |
+          set -euo pipefail
+          cd dt
+          zip -r ../DeviceTree.zip .
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./DeviceTree.zip
+          name: TWRP_Device_Tree-${{ github.run_id }}
+          tag_name: ${{ github.run_id }}
+          body: DeviceTree for twrp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
