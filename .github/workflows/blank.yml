@@ -3,70 +3,31 @@ name: Make TWRP Device
 on:
   workflow_dispatch:
     inputs:
-      IMG_URL:
-        description: 'Direct URL to boot.img or recovery.img'
+      IMG_URL:    
+        description: 'IMG_URL'
         required: true
         default: ''
-
-permissions:
-  contents: write  # 必须声明才能上传 Release
 
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-20.04
+    
     steps:
     - name: Check Out
-      uses: actions/checkout@v4
-
+      uses: actions/checkout@main
+      
     - name: Prepare the environment
       run: |
         sudo apt update
-        sudo apt -y install python3 python3-pip cpio wget aria2 zip
-        python3 -m pip install --upgrade pip
-        python3 -m pip install twrpdtgen
-
-    - name: Patch twrpdtgen (fallback for missing ro.product.system.device)
-      run: |
-        python3 - <<'PY'
-        import site, re
-        from pathlib import Path
-        p = Path(site.getsitepackages()[0]) / 'twrpdtgen' / 'utils' / 'properties.py'
-        s = p.read_text(encoding='utf-8')
-        s = re.sub(
-          r"(def\s+get_device_from_props\(props\):\n\s+.*?return\s+props
-
-\[\"ro\.product\.system\.device\"\]
-
-\n)",
-          "def get_device_from_props(props):\n"
-          "    for key in (\n"
-          "        'ro.product.system.device',\n"
-          "        'ro.product.device',\n"
-          "        'ro.product.vendor.device',\n"
-          "        'ro.product.name',\n"
-          "    ):\n"
-          "        if key in props and props[key]:\n"
-          "            return props[key]\n"
-          "    raise KeyError('No usable device property found')\n",
-          s, flags=re.S)
-        p.write_text(s, encoding='utf-8')
-        PY
-
-    - name: Create output dir
-      run: mkdir -p dt
-
+        sudo apt -y install python3 python3-pip cpio wget
+        pip3 install twrpdtgen
+        mkdir dt
+      
     - name: Download boot or recovery img
       run: |
-        aria2c -x 16 -s 16 -o input.img "${{ github.event.inputs.IMG_URL }}"
-        # 简单判断文件名
-        if echo "${{ github.event.inputs.IMG_URL }}" | grep -qi 'boot'; then
-          mv input.img boot.img
-        else
-          mv input.img recovery.img
-        fi
-
+        aria2c "${{ github.event.inputs.IMG_URL }}"
+      
     - name: Start build
       run: |
         if [ -f "boot.img" ]; then
@@ -77,16 +38,18 @@ jobs:
           echo "No boot.img or recovery.img found."
           exit 1
         fi
-
+      
     - name: ZIP device tree
-      run: zip -r DeviceTree.zip ./dt
-
+      run: |
+        zip -r DeviceTree.zip ./dt
+      
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./DeviceTree.zip
+        files: |
+          ./DeviceTree.zip
         name: TWRP_Device_Tree-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
-        body: DeviceTree for TWRP
+        body: DeviceTree for twrp
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
