@@ -11,7 +11,8 @@ on:
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: self-hosted    
+    runs-on: ubuntu-20.04
+    
     steps:
     - name: Check Out
       uses: actions/checkout@main
@@ -19,28 +20,15 @@ jobs:
     - name: Prepare the environment
       run: |
         sudo apt update
-        sudo apt -y install python3 python3-pip cpio wget zip
+        sudo apt -y install python3 python3-pip cpio wget
         pip3 install twrpdtgen
         mkdir dt
       
     - name: Download boot or recovery img
       run: |
         aria2c "${{ github.event.inputs.IMG_URL }}"
-
- - name: Auto patch build.prop codename
-      run: |
-        echo "开始检测并补齐 build.prop..."
-        for f in $(find dt -name build.prop); do
-          if ! grep -q "ro.product.system.device" "$f"; then
-            echo "ro.product.system.device=lito" >> "$f"
-            echo "已补充 ro.product.system.device=lito 到 $f"
-          else
-            echo "$f 已包含 ro.product.system.device"
-          fi
-        done
-        echo "✅ build.prop 补丁完成"
       
-    - name: Run twrpdtgen
+    - name: Start build
       run: |
         if [ -f "boot.img" ]; then
           python3 -m twrpdtgen boot.img -o dt/
@@ -50,7 +38,6 @@ jobs:
           echo "No boot.img or recovery.img found."
           exit 1
         fi
-
       
     - name: ZIP device tree
       run: |
@@ -63,8 +50,6 @@ jobs:
           ./DeviceTree.zip
         name: TWRP_Device_Tree-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
-        body: |
-          DeviceTree for TWRP
-          Codename: lito
+        body: DeviceTree for twrp
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
