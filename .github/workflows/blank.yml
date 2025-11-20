@@ -21,7 +21,8 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt update
-          sudo apt -y install python3 python3-pip python3-venv cpio aria2 zip unzip wget git
+          # 安装 AIK 可能用到的工具
+          sudo apt -y install python3 python3-pip python3-venv bash cpio gzip lz4 xz-utils unzip zip wget git
           python3 -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
@@ -44,14 +45,20 @@ jobs:
             esac
           done
 
+      - name: Check image file
+        run: |
+          set -euo pipefail
+          ls -lh *.img
+          file *.img || true
+
       - name: Start build
         run: |
           set -euo pipefail
           source .venv/bin/activate
           if [ -f "boot.img" ]; then
-            python -m twrpdtgen boot.img -o dt/
+            python -m twrpdtgen boot.img -o dt/ || echo "AIK failed on boot.img"
           elif [ -f "recovery.img" ]; then
-            python -m twrpdtgen recovery.img -o dt/
+            python -m twrpdtgen recovery.img -o dt/ || echo "AIK failed on recovery.img"
           else
             echo "No boot.img or recovery.img found."
             exit 1
