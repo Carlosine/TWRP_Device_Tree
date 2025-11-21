@@ -11,66 +11,45 @@ on:
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: self-hosted    
+    runs-on: ubuntu-20.04
+    
     steps:
-      - name: Check Out
-        uses: actions/checkout@main
+    - name: Check Out
+      uses: actions/checkout@main
       
-      - name: Prepare the environment
-        run: |
-          sudo apt update
-          sudo apt -y install python3 python3-pip cpio wget aria2
-          pip3 install twrpdtgen
-          mkdir dt
+    - name: Prepare the environment
+      run: |
+        sudo apt update
+        sudo apt -y install python3 python3-pip cpio wget
+        pip3 install twrpdtgen
+        mkdir dt
       
-      - name: Download boot or recovery img
-        run: |
-          aria2c "${{ github.event.inputs.IMG_URL }}"
+    - name: Download boot or recovery img
+      run: |
+        aria2c "${{ github.event.inputs.IMG_URL }}"
       
-      - name: Start build
-        run: |
-          CODENAME="lito"
-          MANUFACTURER="oppo"
-
-          # 先创建 dt/build.prop 并补齐属性
-          echo "开始创建并补齐 build.prop..."
-          cat <<EOF > dt/build.prop
-          ro.product.system.device=$CODENAME
-          ro.product.device=$CODENAME
-          ro.build.product=$CODENAME
-          ro.product.vendor.device=$CODENAME
-
-          ro.product.system.manufacturer=$MANUFACTURER
-          ro.product.manufacturer=$MANUFACTURER
-          ro.product.vendor.manufacturer=$MANUFACTURER
-
-          ro.product.model=$CODENAME
-          ro.product.name=$CODENAME
-          EOF
-          echo "已生成并补齐最小化 build.prop 到 dt/build.prop"
-          echo "✅ build.prop 补丁完成"
-
-          # 再运行 twrpdtgen
-          if [ -f "boot.img" ]; then
-            python3 -m twrpdtgen boot.img -o dt/
-          elif [ -f "recovery.img" ]; then
-            python3 -m twrpdtgen recovery.img -o dt/
-          else
-            echo "No boot.img or recovery.img found."
-            exit 1
-          fi
+    - name: Start build
+      run: |
+        if [ -f "boot.img" ]; then
+          python3 -m twrpdtgen boot.img -o dt/
+        elif [ -f "recovery.img" ]; then
+          python3 -m twrpdtgen recovery.img -o dt/
+        else
+          echo "No boot.img or recovery.img found."
+          exit 1
+        fi
       
-      - name: ZIP device tree
-        run: |
-          zip -r DeviceTree.zip ./dt
+    - name: ZIP device tree
+      run: |
+        zip -r DeviceTree.zip ./dt
       
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ./DeviceTree.zip
-          name: TWRP_Device_Tree-${{ github.run_id }}
-          tag_name: ${{ github.run_id }}
-          body: DeviceTree for twrp
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./DeviceTree.zip
+        name: TWRP_Device_Tree-${{ github.run_id }}
+        tag_name: ${{ github.run_id }}
+        body: DeviceTree for twrp
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
