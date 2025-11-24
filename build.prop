@@ -1,0 +1,65 @@
+# --- 基础设备信息 ---
+ro.product.device=OP4A47
+ro.product.manufacturer=OPPO
+ro.product.brand=OPPO
+ro.product.model=PDPM00
+ro.product.name=PDPM00
+
+ro.product.vendor.device=OP4A47
+ro.product.vendor.manufacturer=OPPO
+ro.product.vendor.brand=OPPO
+ro.product.vendor.model=PDPM00
+ro.product.vendor.name=PDPM00
+
+ro.product.system.device=OP4A47
+ro.product.system.manufacturer=OPPO
+ro.product.system.brand=OPPO
+ro.product.system.model=PDPM00
+ro.product.system.name=PDPM00
+
+# --- 架构信息 ---
+ro.bionic.arch=arm64
+ro.bionic.cpu_variant=generic
+ro.bionic.2nd_arch=arm
+ro.bionic.2nd_cpu_variant=generic
+ro.product.cpu.abilist=arm64-v8a,armeabi-v7a,armeabi
+ro.product.cpu.abilist32=armeabi-v7a,armeabi
+ro.product.cpu.abilist64=arm64-v8a
+
+# --- 构建信息 ---
+ro.build.ab_update=false
+ro.boot.dynamic_partitions=true
+ro.virtual_ab.enabled=false
+ro.build.system_root_image=false
+
+ro.build.fingerprint=OPPO/PDPM00/OP4A47:12/RKQ1.211103.002/Q.e70b06_13c2_13c3:user/release-keys
+ro.vendor.build.fingerprint=OPPO/PDPM00/OP4A47:12/RKQ1.211103.002/Q.e70b06_13c2_13c3:user/release-keys
+ro.bootimage.build.fingerprint=OPPO/PDPM00/OP4A47:12/RKQ1.211103.002/Q.e70b06_13c2_13c3:user/release-keys
+
+ro.build.description=PDPM00-user 12 RKQ1.211103.002 Q.e70b06_13c2_13c3 release-key
+
+ro.build.version.release=12
+ro.build.version.sdk=31
+ro.build.version.security_patch=2023-02-05
+ro.vendor.build.security_patch=2023-02-05
+
+ro.apex.updatable=true
+
+# --- 板级信息 ---
+ro.product.board=lito
+ro.board.platform=lito
+ro.board.first_api_level=30
+ro.board.api_level=30
+
+# --- 图形显示信息 ---
+ro.minui.pixel_format=RGBX_8888
+ro.sf.lcd_density=480
+ro.hwui.use_vulkan=true
+
+# --- Google 服务信息 ---
+ro.com.google.clientidbase=android-oppo
+ro.com.google.clientidbase.ms=android-oppo
+
+# --- 其他属性 ---
+ro.product.first_api_level=29
+ro.build.characteristics=nosdcard
