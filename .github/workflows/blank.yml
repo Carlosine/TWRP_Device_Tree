@@ -11,8 +11,7 @@ on:
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: self-hosted
-    
+    runs-on: self-hosted    
     steps:
     - name: Check Out
       uses: actions/checkout@main
